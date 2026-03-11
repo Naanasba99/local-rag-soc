@@ -1,8 +1,8 @@
-# 🧠 LOCAL RAG SOC — Assistant IA Offline pour Analystes Cyber
+#  LOCAL RAG SOC — Assistant IA Offline pour Analystes Cyber
 
 > *"La dépendance au cloud est une vulnérabilité. L'autonomie est une compétence."*
 
-## 🎯 C'est quoi ?
+##  C'est quoi ?
 
 Un système RAG (Retrieval-Augmented Generation) **100% local et offline** conçu pour les analystes SOC, DFIR et Threat Hunters.
 
@@ -24,7 +24,7 @@ Tu poses une question en langage naturel → le système cherche dans ta base de
 
 ---
 
-## 🏗️ Architecture
+##  Architecture
 ```
 Question (langage naturel)
         ↓
@@ -41,7 +41,7 @@ Réponse sourcée + fichiers cités
 
 ---
 
-## 📚 Sources indexées
+##  Sources indexées
 
 - **MITRE ATT&CK** — 704 techniques complètes
 - **SigmaHQ** — 3000+ règles de détection
@@ -55,7 +55,7 @@ Réponse sourcée + fichiers cités
 
 ---
 
-## 🚀 Usage
+##  Usage
 ```bash
 # Poser une question
 python3 soc_ask.py "Explique MITRE T1055 Process Injection"
@@ -82,7 +82,7 @@ caffeinate -i python3 soc_ask.py --rebuild
 
 ---
 
-## 📖 Documentation
+##  Documentation
 
 - [Installation](docs/INSTALLATION.md)
 - [Architecture détaillée](docs/ARCHITECTURE.md)
@@ -90,7 +90,7 @@ caffeinate -i python3 soc_ask.py --rebuild
 
 ---
 
-## 👤 Auteur
+##  Auteur
 
 **Naanasba** — Transition Finance → Cybersécurité  
 Parcours : SOC Analyst → DFIR → Threat Hunter  
@@ -98,7 +98,7 @@ GitHub : [@Naanasba99](https://github.com/Naanasba99)
 
 ---
 
-## 🌍 Pourquoi en français ?
+##  Pourquoi en français ?
 
 La communauté cyber francophone manque de ressources techniques de qualité.  
 Ce projet est une contribution à cet écosystème.
