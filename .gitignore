@@ -1,0 +1,13 @@
+.env
+*.bak
+__pycache__/
+*.pyc
+soc-chroma-db/
+soc-chroma-db-v2/
+soc-brain/
+embeddings_db_old/
+soc_queries.log
+soc_history.json
+veille_soc.log
+*.log
+*.save
