@@ -507,14 +507,14 @@ def fetch_sigma(force=False):
     priority_rules = [
         item for item in tree
         if item["path"].endswith(".yml")
-        and "rules/" in item["path"]
+        and "hayabusa/" in item["path"]
         and any(cat in item["path"] for cat in priority_cats)
     ][:400]
 
     other_rules = [
         item for item in tree
         if item["path"].endswith(".yml")
-        and "rules/" in item["path"]
+        and "hayabusa/" in item["path"]
         and any(cat in item["path"] for cat in other_cats)
         and item not in priority_rules
     ][:100]
@@ -807,7 +807,7 @@ def parse_args():
     parser.add_argument(
         "--source",
         type=str,
-        choices=["mitre", "cisa", "nvd", "rss", "sigma", "abuse", "playbooks", "all"],
+        choices=["mitre", "cisa", "nvd", "rss", "sigma", "abuse", "playbooks", "atomic", "hayabusa", "anssi", "til", "all"],
         default="all",
         help="Source à mettre à jour (défaut : all)"
     )
@@ -847,6 +847,10 @@ def main():
         "sigma":     fetch_sigma,
         "abuse":     fetch_abuse,
         "playbooks": create_playbooks,
+        "atomic":    fetch_atomic_red_team,
+        "hayabusa":  fetch_hayabusa,
+        "anssi":     fetch_anssi,
+        "til":       fetch_til,
     }
 
     if args.source == "all":
@@ -868,6 +872,233 @@ def main():
     show_status()
 
 
+
+
+# ===================== ATOMIC RED TEAM =====================
+
+def fetch_atomic_red_team(force=False):
+    path = PATHS.get("atomic", SOC_BRAIN_PATH / "atomic_red_team")
+    path.mkdir(parents=True, exist_ok=True)
+    freshness_file = path / "_atomic_last_run.txt"
+
+    if not force and file_age_days(freshness_file) < 14:
+        log(f"⏭️  Atomic Red Team — frais, skip.")
+        return
+
+    log("🔴 Atomic Red Team — téléchargement en cours...")
+
+    r = http_get_with_retry(
+        "https://api.github.com/repos/redcanaryco/atomic-red-team/git/trees/master?recursive=1",
+        retries=3, wait=5
+    )
+    if not r:
+        log("❌ Atomic Red Team — impossible de récupérer l'index")
+        return
+
+    tree = r.json().get("tree", [])
+    yaml_files = [
+        item for item in tree
+        if item["path"].endswith(".yaml")
+        and "atomics/T" in item["path"]
+    ][:200]
+
+    log(f"  📋 {len(yaml_files)} techniques sélectionnées...")
+    count = 0
+
+    for item in yaml_files:
+        r2 = http_get_with_retry(
+            f"https://raw.githubusercontent.com/redcanaryco/atomic-red-team/master/{item['path']}",
+            retries=2, wait=3
+        )
+        if r2:
+            fname = item["path"].replace("/", "_")
+            with open(path / f"{fname}.txt", "w", encoding="utf-8") as f:
+                f.write(f"ATOMIC RED TEAM — {item['path']}\n")
+                f.write(f"Source : https://github.com/redcanaryco/atomic-red-team\n")
+                f.write("=" * 60 + "\n\n")
+                f.write(r2.text)
+            count += 1
+        time.sleep(0.5)
+
+    with open(freshness_file, "w") as f:
+        f.write(f"Dernière exécution : {datetime.now().strftime('%Y-%m-%d %H:%M')}\n")
+        f.write(f"Fichiers récupérés : {count}\n")
+
+    log(f"✅ Atomic Red Team — {count} techniques enregistrées")
+
+
+# ===================== HAYABUSA RULES =====================
+
+def fetch_hayabusa(force=False):
+    path = PATHS.get("hayabusa", SOC_BRAIN_PATH / "hayabusa_rules")
+    path.mkdir(parents=True, exist_ok=True)
+    freshness_file = path / "_hayabusa_last_run.txt"
+
+    if not force and file_age_days(freshness_file) < 14:
+        log(f"⏭️  Hayabusa Rules — frais, skip.")
+        return
+
+    log("🔵 Hayabusa Rules — téléchargement en cours...")
+
+    r = http_get_with_retry(
+        "https://api.github.com/repos/Yamato-Security/hayabusa-rules/git/trees/main?recursive=1",
+        retries=3, wait=5
+    )
+    if not r:
+        log("❌ Hayabusa — impossible de récupérer l'index")
+        return
+
+    tree = r.json().get("tree", [])
+    rule_files = [
+        item for item in tree
+        if item["path"].endswith(".yml")
+        and "hayabusa/" in item["path"]
+    ][:300]
+
+    log(f"  📋 {len(rule_files)} règles sélectionnées...")
+    count = 0
+
+    for item in rule_files:
+        r2 = http_get_with_retry(
+            f"https://raw.githubusercontent.com/Yamato-Security/hayabusa-rules/main/{item['path']}",
+            retries=2, wait=3
+        )
+        if r2:
+            fname = item["path"].replace("/", "_")
+            with open(path / f"{fname}.txt", "w", encoding="utf-8") as f:
+                f.write(f"HAYABUSA RULE — {item['path']}\n")
+                f.write(f"Source : https://github.com/Yamato-Security/hayabusa-rules\n")
+                f.write("=" * 60 + "\n\n")
+                f.write(r2.text)
+            count += 1
+        time.sleep(0.5)
+
+    with open(freshness_file, "w") as f:
+        f.write(f"Dernière exécution : {datetime.now().strftime('%Y-%m-%d %H:%M')}\n")
+        f.write(f"Fichiers récupérés : {count}\n")
+
+    log(f"✅ Hayabusa — {count} règles enregistrées")
+
+
+# ===================== ANSSI =====================
+
+def fetch_anssi(force=False):
+    path = PATHS.get("anssi", SOC_BRAIN_PATH / "anssi")
+    path.mkdir(parents=True, exist_ok=True)
+    freshness_file = path / "_anssi_last_run.txt"
+
+    if not force and file_age_days(freshness_file) < 7:
+        log(f"⏭️  ANSSI — frais, skip.")
+        return
+
+    log("🇫🇷 ANSSI — téléchargement flux RSS en cours...")
+
+    feeds = {
+        "anssi_actualite": "https://www.cert.ssi.gouv.fr/actualite/feed/",
+        "anssi_alerte":    "https://www.cert.ssi.gouv.fr/alerte/feed/",
+        "anssi_avis":      "https://www.cert.ssi.gouv.fr/avis/feed/",
+    }
+
+    total = 0
+    for name, url in feeds.items():
+        try:
+            r = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+            if r.status_code != 200:
+                log(f"  ⚠️  {name} — HTTP {r.status_code}")
+                continue
+
+            feed = feedparser.parse(r.content)
+            entries = feed.get("entries", [])
+
+            lines = [
+                f"ANSSI — {name.upper()}",
+                f"Source : {url}",
+                f"Mis à jour : {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+                "=" * 60 + "\n"
+            ]
+
+            for entry in entries[:30]:
+                title   = entry.get("title", "")
+                link    = entry.get("link", "")
+                date    = entry.get("published", "")
+                summary = entry.get("summary", "")
+                summary = re.sub(r"<[^>]+>", " ", summary)
+                summary = re.sub(r"\s+", " ", summary).strip()[:1000]
+
+                lines.append(f"""TITRE   : {title}
+DATE    : {date}
+LIEN    : {link}
+RÉSUMÉ  : {summary}
+---
+""")
+
+            with open(path / f"{name}.txt", "w", encoding="utf-8") as f:
+                f.write("\n".join(lines))
+
+            total += len(entries)
+            log(f"  ✅ {name} — {len(entries)} entrées")
+            time.sleep(1)
+
+        except Exception as e:
+            log(f"  ❌ {name} — erreur : {e}")
+
+    with open(freshness_file, "w") as f:
+        f.write(f"Dernière exécution : {datetime.now().strftime('%Y-%m-%d %H:%M')}\n")
+        f.write(f"Entrées récupérées : {total}\n")
+
+    log(f"✅ ANSSI — {total} entrées enregistrées")
+
+
+# ===================== THREAT INTELLIGENCE COLLECTIVE =====================
+
+def fetch_til(force=False):
+    path = PATHS.get("til", SOC_BRAIN_PATH / "threat_intel_collective")
+    path.mkdir(parents=True, exist_ok=True)
+    freshness_file = path / "_til_last_run.txt"
+
+    if not force and file_age_days(freshness_file) < 7:
+        log(f"⏭️  TIL — frais, skip.")
+        return
+
+    log("🟠 Threat Intelligence Collective — téléchargement...")
+
+    r = http_get_with_retry(
+        "https://api.github.com/repos/threat-intelligence-collective/til/git/trees/main?recursive=1",
+        retries=3, wait=5
+    )
+    if not r:
+        log("❌ TIL — impossible de récupérer l'index")
+        return
+
+    tree = r.json().get("tree", [])
+    md_files = [
+        item for item in tree
+        if item["path"].endswith(".md")
+    ][:200]
+
+    log(f"  📋 {len(md_files)} fichiers sélectionnés...")
+    count = 0
+
+    for item in md_files:
+        r2 = http_get_with_retry(
+            f"https://raw.githubusercontent.com/threat-intelligence-collective/til/main/{item['path']}",
+            retries=2, wait=3
+        )
+        if r2:
+            fname = item["path"].replace("/", "_")
+            with open(path / f"{fname}.txt", "w", encoding="utf-8") as f:
+                f.write(f"THREAT INTEL COLLECTIVE — {item['path']}\n")
+                f.write(f"Source : https://github.com/threat-intelligence-collective/til\n")
+                f.write("=" * 60 + "\n\n")
+                f.write(r2.text)
+            count += 1
+        time.sleep(0.5)
+
+    with open(freshness_file, "w") as f:
+        f.write(f"Dernière exécution : {datetime.now().strftime('%Y-%m-%d %H:%M')}\n")
+        f.write(f"Fichiers récupérés : {count}\n")
+
+    log(f"✅ TIL — {count} fichiers enregistrés")
+
 if __name__ == "__main__":
     main()
-
